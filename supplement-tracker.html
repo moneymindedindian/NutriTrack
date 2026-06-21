@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>NutriTrack — Daily Supplement Tracker</title>
+
+<!-- PWA: installable on Android, "Add to Home Screen" shortcut/icon -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1b2a">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+<!-- iOS home-screen support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NutriTrack">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --navy: #0d1b2a;
+    --navy2: #162032;
+    --navy3: #1e2d42;
+    --card: #1a2740;
+    --card2: #243150;
+    --mint: #3dd9a4;
+    --mint2: #29c48f;
+    --mint-dim: rgba(61,217,164,0.12);
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.12);
+    --coral: #ff6b6b;
+    --coral-dim: rgba(255,107,107,0.12);
+    --sky: #64b5f6;
+    --sky-dim: rgba(100,181,246,0.12);
+    --text: #e8edf5;
+    --text2: #8fa3b8;
+    --text3: #5a7290;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--navy); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+  h1,h2,h3,.logo { font-family: 'Space Grotesk', sans-serif; }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--navy2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; gap: 0; height: 60px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-size: 1.2rem; font-weight: 700; color: var(--mint); margin-right: 2rem; display:flex;align-items:center;gap:8px; flex-shrink:0; }
+  .logo i { font-size: 1.3rem; }
+  .nav-tabs {
+    display: flex; gap: 4px; flex: 1;
+    overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 500;
+    color: var(--text2); border: none; background: transparent; transition: all .2s;
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap;
+  }
+  .nav-tab:hover { color: var(--text); background: var(--border); }
+  .nav-tab.active { background: var(--mint-dim); color: var(--mint); }
+  .nav-right { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  .btn-sm {
+    padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border2); background: transparent;
+    color: var(--text2); font-size: 0.8rem; cursor: pointer; transition: all .2s;
+    display: flex; align-items: center; gap: 5px; font-family: 'Inter', sans-serif;
+  }
+  .btn-sm:hover { color: var(--text); border-color: var(--mint); color: var(--mint); }
+  .btn-mint { background: var(--mint); color: #0d1b2a; border-color: var(--mint); font-weight:600; }
+  .btn-mint:hover { background: var(--mint2); color: #0d1b2a; border-color: var(--mint2); }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.5rem;
+  }
+  .card-sm { padding: 1rem 1.25rem; border-radius: 10px; }
+
+  /* ── PROFILE SETUP ── */
+  .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 0.8rem; color: var(--text2); font-weight: 500; letter-spacing: .03em; text-transform: uppercase; }
+  .form-group input, .form-group select {
+    background: var(--navy3); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    color: var(--text); padding: 10px 14px; font-size: 0.9rem; font-family: 'Inter', sans-serif;
+    outline: none; transition: border .2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--mint); }
+  .form-group select option { background: var(--navy3); }
+  .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text); display:flex;align-items:center;gap:8px; }
+  .section-title i { color: var(--mint); }
+
+  /* ── DASHBOARD ── */
+  .dash-hero { display: grid; grid-template-columns: auto 1fr; gap: 2rem; align-items: center; margin-bottom: 1.5rem; }
+  .ring-wrap { position: relative; width: 160px; height: 160px; flex-shrink:0; }
+  .ring-label { position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+  .ring-label .pct { font-family:'Space Grotesk',sans-serif; font-size:2rem; font-weight:700; color:var(--mint); }
+  .ring-label .sub { font-size:0.72rem; color:var(--text2); margin-top:2px; }
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat-card {
+    background: var(--navy3); border-radius: 10px; padding: 1rem;
+    border: 1px solid var(--border);
+  }
+  .stat-card .s-val { font-size: 1.5rem; font-weight: 700; font-family:'Space Grotesk',sans-serif; }
+  .stat-card .s-lbl { font-size: 0.73rem; color: var(--text2); margin-top: 3px; text-transform:uppercase; letter-spacing:.04em; }
+  .stat-card.mint .s-val { color: var(--mint); }
+  .stat-card.amber .s-val { color: var(--amber); }
+  .stat-card.coral .s-val { color: var(--coral); }
+  .stat-card.sky .s-val { color: var(--sky); }
+
+  /* ── SUPPLEMENT SECTIONS ── */
+  .supp-list { display: flex; flex-direction: column; gap: 10px; }
+  .supp-item {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    transition: border-color .2s;
+  }
+  .supp-item:hover { border-color: var(--border2); }
+  .supp-header {
+    padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer;
+    user-select: none;
+  }
+  .supp-icon { width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0; }
+  .supp-info { flex:1; }
+  .supp-name { font-size:0.93rem; font-weight:600; }
+  .supp-desc { font-size:0.77rem; color:var(--text2); margin-top:2px; }
+  .supp-meta { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .supp-progress-wrap { width:90px; }
+  .progress-bar { height:6px; background:var(--navy3); border-radius:3px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:3px; transition:width .5s ease; }
+  .progress-pct { font-size:0.75rem; font-weight:600; margin-top:3px; text-align:right; }
+  .log-btn {
+    padding:5px 12px; border-radius:7px; border:1px solid var(--border2); background:transparent;
+    color:var(--text2); font-size:0.78rem; cursor:pointer; transition:all .2s; white-space:nowrap;
+    font-family:'Inter',sans-serif;
+  }
+  .log-btn:hover { border-color:var(--mint); color:var(--mint); }
+  .log-btn.done { background:var(--mint-dim); color:var(--mint); border-color:var(--mint); }
+  .chevron { color:var(--text3); font-size:0.8rem; transition:transform .3s; }
+  .supp-item.open .chevron { transform:rotate(180deg); }
+
+  .supp-body {
+    display: none; padding: 0 16px 16px; border-top: 1px solid var(--border);
+  }
+  .supp-item.open .supp-body { display: block; }
+
+  .food-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 12px; }
+  .food-card {
+    background: var(--navy3); border-radius:10px; padding:12px; border:1px solid var(--border);
+    display:flex; flex-direction:column; gap:6px; cursor:pointer; transition:all .2s;
+  }
+  .food-card:hover { border-color:var(--mint); transform:translateY(-1px); }
+  .food-card.logged { border-color:var(--mint); background:var(--mint-dim); }
+  .food-name { font-size:0.85rem; font-weight:600; }
+  .food-portion { font-size:0.75rem; color:var(--text2); }
+  .food-coverage { font-size:0.8rem; font-weight:600; color:var(--mint); }
+  .food-calories { font-size:0.72rem; color:var(--text3); }
+
+  /* badge */
+  .badge { display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:600; }
+  .badge-weekly { background:var(--sky-dim); color:var(--sky); }
+  .badge-daily { background:var(--mint-dim); color:var(--mint); }
+  .badge-warn { background:var(--amber-dim); color:var(--amber); }
+
+  /* ── PROGRESS PAGE ── */
+  .prog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  .chart-wrap { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; }
+  .chart-title { font-size:0.9rem; font-weight:600; margin-bottom:1rem; color:var(--text2); text-transform:uppercase; letter-spacing:.05em; }
+
+  /* ── NOTIFICATION TOAST ── */
+  #toast-wrap { position:fixed; bottom:1.5rem; right:1.5rem; z-index:999; display:flex;flex-direction:column;gap:10px; }
+  .toast {
+    background:var(--card2); border:1px solid var(--border2); border-radius:12px;
+    padding:14px 16px; min-width:280px; max-width:340px;
+    animation: slide-in .3s ease;
+    display:flex; gap:12px; align-items:flex-start;
+  }
+  .toast.warn { border-color:var(--amber); }
+  .toast.success { border-color:var(--mint); }
+  .toast-icon { font-size:1.2rem; flex-shrink:0; margin-top:1px; }
+  .toast.warn .toast-icon { color:var(--amber); }
+  .toast.success .toast-icon { color:var(--mint); }
+  .toast-body .t-title { font-size:0.85rem; font-weight:600; }
+  .toast-body .t-msg { font-size:0.78rem; color:var(--text2); margin-top:3px; }
+  .toast-close { margin-left:auto; color:var(--text3); cursor:pointer; font-size:0.85rem; }
+  @keyframes slide-in { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+
+  /* ── MODAL ── */
+  .modal-bg {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200;
+    align-items:center; justify-content:center;
+  }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--card); border-radius:18px; border:1px solid var(--border2); padding:2rem; width:90%; max-width:480px; max-height:90vh; overflow-y:auto; }
+  .modal h2 { font-size:1.2rem; margin-bottom:1.5rem; display:flex;align-items:center;gap:8px; }
+  .modal h2 i { color:var(--mint); }
+
+  /* ── MISC ── */
+  .divider { height:1px; background:var(--border); margin:1.5rem 0; }
+  .row { display:flex; gap:1rem; align-items:center; }
+  .mt-1 { margin-top:.5rem; }
+  .mt-2 { margin-top:1rem; }
+  .mt-3 { margin-top:1.5rem; }
+  .mb-1 { margin-bottom:.5rem; }
+  .mb-2 { margin-bottom:1rem; }
+  .tip-box { background:var(--mint-dim); border:1px solid rgba(61,217,164,0.2); border-radius:10px; padding:12px 16px; font-size:0.82rem; color:var(--text2); line-height:1.6; }
+  .tip-box strong { color:var(--mint); }
+  .warn-box { background:var(--amber-dim); border:1px solid rgba(245,166,35,0.2); border-radius:10px; padding:12px 16px; font-size:0.82rem; color:var(--text2); }
+  .warn-box strong { color:var(--amber); }
+  input[type=range] { accent-color:var(--mint); }
+  .full-btn {
+    width:100%; padding:12px; border-radius:10px; background:var(--mint); color:#0d1b2a;
+    font-family:'Inter',sans-serif; font-size:0.93rem; font-weight:700; border:none; cursor:pointer;
+    transition:background .2s; margin-top:1rem; display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .full-btn:hover { background:var(--mint2); }
+  .notif-schedule { display:flex;flex-direction:column;gap:8px;margin-top:.5rem; }
+  .notif-row { display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--navy3);border-radius:8px;border:1px solid var(--border); }
+  .toggle { position:relative;width:38px;height:22px;cursor:pointer; }
+  .toggle input { opacity:0;width:0;height:0; }
+  .toggle-slider { position:absolute;inset:0;background:#2a3a50;border-radius:11px;transition:.2s; }
+  .toggle-slider::before { content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s; }
+  .toggle input:checked + .toggle-slider { background:var(--mint); }
+  .toggle input:checked + .toggle-slider::before { transform:translateX(16px); }
+  .watermark { text-align:center;color:var(--text3);font-size:0.72rem;padding:2rem 0 1rem; }
+  .supp-check-item { cursor:pointer; display:block; }
+  .supp-check-box { display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--navy3);transition:all .15s; }
+  .supp-check-item.checked .supp-check-box { border-color:var(--mint);background:var(--mint-dim); }
+  .supp-check-item:hover .supp-check-box { border-color:var(--border2); }
+  .check-dot { width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;color:transparent;flex-shrink:0;transition:all .15s; }
+  .check-dot.on { background:var(--mint);border-color:var(--mint);color:#0d1b2a; }
+  .health-tip-row { display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:1rem; }
+  .health-tip { background:var(--navy3);border-radius:10px;padding:14px;border:1px solid var(--border); }
+  .health-tip .ht-icon { font-size:1.4rem;margin-bottom:8px; }
+  .health-tip .ht-title { font-size:0.83rem;font-weight:600;margin-bottom:4px; }
+  .health-tip .ht-text { font-size:0.75rem;color:var(--text2);line-height:1.5; }
+  .streak-display { display:flex;align-items:center;gap:6px;font-family:'Space Grotesk',sans-serif; }
+  .streak-num { font-size:1.8rem;font-weight:700;color:var(--amber); }
+  .streak-label { font-size:0.75rem;color:var(--text2);text-transform:uppercase;letter-spacing:.05em; }
+  @media(max-width:700px){
+    nav{padding:0 .75rem; gap:8px;}
+    .logo{font-size:1.05rem; margin-right:.75rem;}
+    .logo span{display:none;}
+    .nav-tab{padding:6px 10px; font-size:0.76rem;}
+    .nav-tab i{font-size:0.85rem;}
+    .nav-right .btn-sm span{display:none;}
+    .nav-right .btn-sm{padding:6px 10px;}
+    .page{padding:1rem;}
+    .setup-grid{grid-template-columns:1fr;}
+    .stat-row{grid-template-columns:1fr 1fr;}
+    .prog-grid{grid-template-columns:1fr;}
+    .health-tip-row{grid-template-columns:1fr;}
+    .dash-hero{grid-template-columns:1fr; gap:1.25rem; text-align:center;}
+    .ring-wrap{margin:0 auto;}
+    .supp-header{flex-wrap:wrap; gap:8px;}
+    .supp-meta{width:100%; justify-content:space-between; margin-left:48px; width:calc(100% - 48px);}
+    .modal{padding:1.25rem; width:92%;}
+    #toast-wrap{left:1rem; right:1rem; bottom:1rem;}
+    .toast{min-width:0; max-width:100%; width:100%;}
+  }
+  @media(max-width:480px){
+    .stat-row{grid-template-columns:1fr 1fr; gap:8px;}
+    .stat-card{padding:.75rem;}
+    .supp-desc{display:none;}
+    .supp-progress-wrap{width:70px;}
+    .log-btn{padding:5px 9px; font-size:0.72rem;}
+    .nav-tab{padding:6px 8px; font-size:0.72rem; gap:4px;}
+  }
+  .log-amount-modal { display:flex;flex-direction:column;gap:12px;margin-top:12px; }
+  .amount-input { background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:10px 14px;font-size:1rem;font-family:'Inter',sans-serif;outline:none;width:100%;transition:border .2s; }
+  .amount-input:focus { border-color:var(--mint); }
+  .weekly-indicator { display:inline-flex;align-items:center;gap:5px;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:20px;background:rgba(100,181,246,0.12);color:var(--sky); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo"><i class="fa-solid fa-seedling"></i> <span>NutriTrack</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')"><i class="fa-solid fa-house-medical"></i> Dashboard</button>
+    <button class="nav-tab" onclick="showPage('tracker')"><i class="fa-solid fa-capsules"></i> Supplements</button>
+    <button class="nav-tab" onclick="showPage('progress')"><i class="fa-solid fa-chart-line"></i> Progress</button>
+    <button class="nav-tab" onclick="showPage('profile')"><i class="fa-solid fa-user-pen"></i> Profile</button>
+    <button class="nav-tab" onclick="showPage('tips')"><i class="fa-solid fa-heart-pulse"></i> Health Tips</button>
+  </div>
+  <div class="nav-right">
+    <button class="btn-sm btn-mint" id="installAppBtn" onclick="installApp()" style="display:none"><i class="fa-solid fa-mobile-screen-button"></i> <span>Install App</span></button>
+    <button class="btn-sm" onclick="exportData()"><i class="fa-solid fa-file-export"></i> <span>Export</span></button>
+    <button class="btn-sm btn-mint" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-file-import"></i> <span>Import</span></button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</nav>
+
+<!-- TOAST AREA -->
+<div id="toast-wrap"></div>
+
+<!-- LOG AMOUNT MODAL -->
+<div class="modal-bg" id="logModal">
+  <div class="modal">
+    <h2><i class="fa-solid fa-plus-circle"></i> Log Intake</h2>
+    <div id="logModalContent"></div>
+    <button class="full-btn" onclick="confirmLog()"><i class="fa-solid fa-check"></i> Confirm Log</button>
+    <button class="btn-sm" style="width:100%;margin-top:8px;justify-content:center" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ DASHBOARD ═══ -->
+<div class="page active" id="page-dashboard">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+    <div>
+      <h1 style="font-size:1.5rem;font-weight:700" id="dashGreeting">Good morning!</h1>
+      <div style="color:var(--text2);font-size:0.85rem;margin-top:4px" id="dashDate"></div>
+    </div>
+    <div class="streak-display">
+      <div>
+        <div class="streak-num" id="streakNum">0</div>
+        <div class="streak-label"><i class="fa-solid fa-fire" style="color:var(--amber)"></i> Day Streak</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero ring + stats -->
+  <div class="card mb-2">
+    <div class="dash-hero">
+      <div class="ring-wrap">
+        <canvas id="ringChart" width="160" height="160"></canvas>
+        <div class="ring-label">
+          <div class="pct" id="overallPct">0%</div>
+          <div class="sub">Daily Goal</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:600;margin-bottom:.75rem">Today's Overview</div>
+        <div class="stat-row">
+          <div class="stat-card mint"><div class="s-val" id="statComp">0</div><div class="s-lbl">Completed</div></div>
+          <div class="stat-card amber"><div class="s-val" id="statPend">0</div><div class="s-lbl">Pending</div></div>
+          <div class="stat-card sky"><div class="s-val" id="statWeekly">0</div><div class="s-lbl">Weekly Done</div></div>
+          <div class="stat-card coral"><div class="s-val" id="statCalories">0</div><div class="s-lbl">Cal from food</div></div>
+        </div>
+        <div class="mt-2">
+          <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Most Deficient Today</div>
+          <div id="deficientList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Missing alert -->
+  <div id="missingAlert" class="warn-box mb-2" style="display:none">
+    <strong><i class="fa-solid fa-triangle-exclamation"></i> Reminder:</strong> <span id="missingText"></span>
+  </div>
+
+  <!-- Quick actions -->
+  <div style="font-family:'Space Grotesk',sans-serif;font-size:0.85rem;font-weight:600;margin-bottom:.75rem;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Quick Log Today</div>
+  <div id="quickLogList" class="supp-list"></div>
+
+  <!-- Notification settings -->
+  <div class="card mt-3">
+    <div class="section-title"><i class="fa-solid fa-bell"></i> Notification Schedule</div>
+    <div class="tip-box mb-1"><strong>Smart Reminders</strong> — NutriTrack will alert you when important supplements are missing based on the times below.</div>
+    <div class="warn-box mb-1"><strong><i class="fa-solid fa-mobile-screen"></i> On mobile:</strong> browser notifications only fire while this app is open in your browser (and aren't supported at all on iPhone Safari). For reminders that reach your phone even when the app is closed, use <strong>"Add to Phone Calendar"</strong> below — it adds real, recurring reminders to your phone's own calendar app.</div>
+    <div id="notifPermissionRow" class="notif-row mb-1" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px">
+        <i class="fa-solid fa-bell-slash" style="color:var(--coral);width:18px"></i>
+        <div><div style="font-size:0.85rem;font-weight:500">Browser notifications are blocked</div><div style="font-size:0.75rem;color:var(--text2)">Enable them in your browser's site settings to get alerts even when this tab isn't focused.</div></div>
+      </div>
+    </div>
+    <div class="notif-schedule" id="notifSchedule"></div>
+    <div class="row mt-2" style="flex-wrap:wrap;gap:8px">
+      <button class="btn-sm btn-mint" onclick="generateICS()"><i class="fa-solid fa-calendar-plus"></i> <span>Add to Phone Calendar</span></button>
+      <button class="btn-sm" id="enableNotifBtn" onclick="ensureNotificationPermission(true)"><i class="fa-solid fa-bell"></i> <span>Enable Browser Notifications</span></button>
+      <button class="btn-sm" onclick="sendTestNotification()"><i class="fa-solid fa-paper-plane"></i> <span>Send Test Notification</span></button>
+    </div>
+  </div>
+
+  <div class="watermark">NutriTrack v1.0 · Built for your health journey 🌿</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ SUPPLEMENTS ═══ -->
+<div class="page" id="page-tracker">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+    <h2 style="font-size:1.3rem;font-weight:700"><i class="fa-solid fa-capsules" style="color:var(--mint)"></i> Supplement Tracker</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:0.8rem;color:var(--text2)" id="trackerDate"></span>
+      <button class="btn-sm" onclick="resetToday()"><i class="fa-solid fa-rotate-left"></i> Reset Today</button>
+    </div>
+  </div>
+  <div class="tip-box mb-2">
+    <strong>How to use:</strong> Expand any supplement to see food sources. Click a food to log it, or click "Log Custom" to enter an amount manually. Weekly supplements are marked with <span class="weekly-indicator"><i class="fa-solid fa-calendar-week"></i> Weekly</span>.
+  </div>
+  <div id="suppList" class="supp-list"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PROGRESS ═══ -->
+<div class="page" id="page-progress">
+  <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:1.5rem"><i class="fa-solid fa-chart-line" style="color:var(--mint)"></i> Progress Overview</h2>
+  <div class="prog-grid">
+    <div class="chart-wrap">
+      <div class="chart-title">Weekly Completion (%)</div>
+      <div style="position:relative;height:220px"><canvas id="weeklyChart" role="img" aria-label="Weekly supplement completion bar chart"></canvas></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Monthly Trend</div>
+      <div style="position:relative;height:220px"><canvas id="monthlyChart" role="img" aria-label="Monthly supplement completion line chart"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-wrap mb-2">
+    <div class="chart-title">Supplement Breakdown — This Week</div>
+    <div style="position:relative;height:260px"><canvas id="breakdownChart" role="img" aria-label="Supplement breakdown radar chart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="section-title"><i class="fa-solid fa-trophy"></i> Achievements</div>
+    <div id="achievements" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:.5rem"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PROFILE ═══ -->
+<div class="page" id="page-profile">
+  <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:1.5rem"><i class="fa-solid fa-user-pen" style="color:var(--mint)"></i> Your Profile</h2>
+  <div class="card mb-2">
+    <div class="section-title"><i class="fa-solid fa-id-card"></i> Basic Information</div>
+    <div class="setup-grid">
+      <div class="form-group"><label>Full Name</label><input type="text" id="pName" placeholder="Your name"></div>
+      <div class="form-group"><label>Age (years)</label><input type="number" id="pAge" min="10" max="100" placeholder="25"></div>
+      <div class="form-group"><label>Weight (kg)</label><input type="number" id="pWeight" min="30" max="250" placeholder="70"></div>
+      <div class="form-group"><label>Height (cm)</label><input type="number" id="pHeight" min="100" max="250" placeholder="170"></div>
+      <div class="form-group"><label>Biological Sex</label>
+        <select id="pSex"><option value="male">Male</option><option value="female">Female</option></select>
+      </div>
+      <div class="form-group"><label>Activity Level</label>
+        <select id="pActivity">
+          <option value="sedentary">Sedentary (desk job)</option>
+          <option value="light">Lightly Active (1–3x/week)</option>
+          <option value="moderate" selected>Moderately Active (3–5x/week)</option>
+          <option value="active">Very Active (6–7x/week)</option>
+          <option value="athlete">Athlete (2x/day)</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Goal</label>
+        <select id="pGoal">
+          <option value="maintain">Maintain Weight</option>
+          <option value="lose">Lose Fat</option>
+          <option value="gain">Gain Muscle</option>
+          <option value="recomp">Body Recomposition</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Dietary Preference</label>
+        <select id="pDiet">
+          <option value="omnivore">Omnivore</option>
+          <option value="vegetarian">Vegetarian</option>
+          <option value="vegan">Vegan</option>
+          <option value="keto">Keto</option>
+          <option value="paleo">Paleo</option>
+        </select>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-notes-medical"></i> Health Conditions (optional)</div>
+    <div class="setup-grid">
+      <div class="form-group"><label>Blood Type</label>
+        <select id="pBlood"><option value="">Unknown</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+      </div>
+      <div class="form-group"><label>Sun Exposure</label>
+        <select id="pSun"><option value="low">Low (mostly indoors)</option><option value="moderate" selected>Moderate</option><option value="high">High (outdoor work)</option></select>
+      </div>
+    </div>
+    <button class="full-btn" onclick="saveProfile()"><i class="fa-solid fa-floppy-disk"></i> Save Profile & Recalculate Targets</button>
+  </div>
+
+  <!-- SUPPLEMENT SELECTOR -->
+  <div class="card mb-2" id="suppSelectorCard">
+    <div class="section-title"><i class="fa-solid fa-sliders"></i> Choose What to Track</div>
+    <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem;line-height:1.6">Select only the supplements you want to track. Your dashboard, tracker, and progress charts will show only these. Unselected ones are hidden everywhere.</p>
+
+    <!-- Quick preset buttons -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem">
+      <button class="btn-sm" onclick="applyPreset('essential')"><i class="fa-solid fa-star"></i> Essential (7)</button>
+      <button class="btn-sm" onclick="applyPreset('fitness')"><i class="fa-solid fa-dumbbell"></i> Fitness (10)</button>
+      <button class="btn-sm" onclick="applyPreset('vegan')"><i class="fa-solid fa-seedling"></i> Vegan (9)</button>
+      <button class="btn-sm" onclick="applyPreset('all')"><i class="fa-solid fa-check-double"></i> Select All</button>
+      <button class="btn-sm" onclick="applyPreset('none')"><i class="fa-solid fa-xmark"></i> Clear All</button>
+    </div>
+
+    <div id="suppCheckGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px"></div>
+    <div style="margin-top:1rem;font-size:0.8rem;color:var(--text2)"><span id="selectedCount" style="color:var(--mint);font-weight:600">0</span> supplements selected</div>
+    <button class="full-btn" onclick="saveTrackedSupps()"><i class="fa-solid fa-check"></i> Apply Selection</button>
+  </div>
+  <div class="card" id="bmiCard" style="display:none">
+    <div class="section-title"><i class="fa-solid fa-calculator"></i> Your Calculated Targets</div>
+    <div id="profileCalcs"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ TIPS ═══ -->
+<div class="page" id="page-tips">
+  <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:1.5rem"><i class="fa-solid fa-heart-pulse" style="color:var(--coral)"></i> Health Tips & Guidance</h2>
+  <div id="healthTipsContent"></div>
+</div>
+
+<script>
+// ═══════════════════ STATE ═══════════════════
+let state = {
+  profile: { name:'', age:25, weight:70, height:170, sex:'male', activity:'moderate', goal:'maintain', diet:'omnivore', blood:'', sun:'moderate' },
+  trackedSupps: null, // null = all tracked (default). Array of ids when user customises.
+  logs: {},
+  foodLogs: {},
+  weeklyLogs: {},
+  streak: 0,
+  lastActiveDate: '',
+  notifs: { morning: true, afternoon: true, evening: true }
+};
+let currentLogSupp = null;
+let ringChart, weeklyChart, monthlyChart, breakdownChart;
+
+// ═══════════════════ SUPPLEMENTS DB ═══════════════════
+const SUPPLEMENTS = [
+  // DAILY
+  { id:'vitD', name:'Vitamin D3', unit:'IU', daily: (p) => p.sun==='low'?2000:p.sun==='moderate'?1500:1000,
+    icon:'fa-sun', color:'#f5a623', colorBg:'rgba(245,166,35,0.15)', freq:'daily',
+    desc:'Bone health, immunity, mood regulation',
+    foods:[
+      {name:'Salmon (100g)', portion:'100g', coverage:447, calories:208},
+      {name:'Canned Tuna (100g)', portion:'100g', coverage:268, calories:116},
+      {name:'Egg Yolk (2 eggs)', portion:'2 eggs', coverage:88, calories:110},
+      {name:'Fortified Milk (250ml)', portion:'250ml', coverage:120, calories:122},
+      {name:'Shiitake Mushrooms (100g)', portion:'100g', coverage:45, calories:34},
+    ]
+  },
+  { id:'vitC', name:'Vitamin C', unit:'mg', daily: (p) => p.sex==='male'?90:75,
+    icon:'fa-lemon', color:'#f9e04b', colorBg:'rgba(249,224,75,0.15)', freq:'daily',
+    desc:'Antioxidant, collagen synthesis, immune defense',
+    foods:[
+      {name:'Bell Pepper (1 medium)', portion:'1 medium', coverage:152, calories:37},
+      {name:'Orange (1 large)', portion:'1 large', coverage:97, calories:87},
+      {name:'Kiwi (2 medium)', portion:'2 fruits', coverage:137, calories:84},
+      {name:'Broccoli (100g)', portion:'100g', coverage:89, calories:34},
+      {name:'Strawberries (100g)', portion:'100g', coverage:59, calories:32},
+    ]
+  },
+  { id:'vitB12', name:'Vitamin B12', unit:'mcg', daily: () => 2.4,
+    icon:'fa-dna', color:'#ce93d8', colorBg:'rgba(206,147,216,0.15)', freq:'daily',
+    desc:'Nerve function, red blood cell formation, DNA synthesis',
+    foods:[
+      {name:'Beef Liver (85g)', portion:'85g', coverage:70.7, calories:130},
+      {name:'Salmon (100g)', portion:'100g', coverage:3.2, calories:208},
+      {name:'Milk (250ml)', portion:'250ml', coverage:1.1, calories:122},
+      {name:'Eggs (2 large)', portion:'2 eggs', coverage:0.6, calories:143},
+      {name:'Fortified Cereal (30g)', portion:'30g', coverage:6.2, calories:110},
+    ]
+  },
+  { id:'iron', name:'Iron', unit:'mg', daily: (p) => {
+      const base = (p.sex==='female' && p.age<50) ? 18 : 8;
+      const vegMult = (p.diet==='vegan'||p.diet==='vegetarian') ? 1.8 : 1; // NIH: plant-only iron is far less bioavailable
+      return Math.round(base*vegMult);
+    },
+    icon:'fa-droplet', color:'#ef9a9a', colorBg:'rgba(239,154,154,0.15)', freq:'daily',
+    desc:'Oxygen transport, energy metabolism, immune function',
+    foods:[
+      {name:'Beef (100g)', portion:'100g', coverage:2.1, calories:250},
+      {name:'Lentils (100g)', portion:'100g cooked', coverage:3.3, calories:116},
+      {name:'Spinach (100g)', portion:'100g cooked', coverage:3.6, calories:23},
+      {name:'Pumpkin Seeds (30g)', portion:'30g', coverage:4.2, calories:170},
+      {name:'Chickpeas (100g)', portion:'100g cooked', coverage:2.9, calories:164},
+    ]
+  },
+  { id:'calcium', name:'Calcium', unit:'mg', daily: (p) => {
+      if(p.sex==='female') return p.age>=51 ? 1200 : 1000;
+      return p.age>=71 ? 1200 : 1000;
+    },
+    icon:'fa-bone', color:'#80cbc4', colorBg:'rgba(128,203,196,0.15)', freq:'daily',
+    desc:'Bone density, muscle function, nerve transmission',
+    foods:[
+      {name:'Milk (250ml)', portion:'250ml', coverage:305, calories:122},
+      {name:'Yogurt (200g)', portion:'200g', coverage:311, calories:120},
+      {name:'Cheese (30g)', portion:'30g slice', coverage:204, calories:113},
+      {name:'Sardines (85g)', portion:'85g', coverage:325, calories:177},
+      {name:'Almonds (30g)', portion:'30g', coverage:76, calories:164},
+      {name:'Tofu (100g)', portion:'100g', coverage:350, calories:76},
+    ]
+  },
+  { id:'magnesium', name:'Magnesium', unit:'mg', daily: (p) => p.sex==='male'? (p.age>30?420:400) : (p.age>30?320:310),
+    icon:'fa-bolt', color:'#80deea', colorBg:'rgba(128,222,234,0.15)', freq:'daily',
+    desc:'Energy production, muscle & nerve function, sleep quality',
+    foods:[
+      {name:'Dark Chocolate (30g)', portion:'30g (70%+ cocoa)', coverage:64, calories:170},
+      {name:'Almonds (30g)', portion:'30g', coverage:77, calories:164},
+      {name:'Spinach (100g)', portion:'100g cooked', coverage:87, calories:23},
+      {name:'Black Beans (100g)', portion:'100g cooked', coverage:60, calories:132},
+      {name:'Avocado (half)', portion:'half avocado', coverage:29, calories:120},
+    ]
+  },
+  { id:'omega3', name:'Omega-3 (EPA+DHA)', unit:'mg', daily: () => 1100,
+    icon:'fa-fish', color:'#64b5f6', colorBg:'rgba(100,181,246,0.15)', freq:'daily',
+    desc:'Heart health, brain function, inflammation reduction',
+    foods:[
+      {name:'Salmon (100g)', portion:'100g', coverage:2260, calories:208},
+      {name:'Sardines (100g)', portion:'100g', coverage:1480, calories:208},
+      {name:'Mackerel (100g)', portion:'100g', coverage:4580, calories:205},
+      {name:'Walnuts (30g)', portion:'30g', coverage:2570, calories:196},
+      {name:'Flaxseeds (15g)', portion:'1 tbsp', coverage:2338, calories:55},
+    ]
+  },
+  { id:'zinc', name:'Zinc', unit:'mg', daily: (p) => {
+      const base = p.sex==='male'?11:8;
+      const vegMult = (p.diet==='vegan'||p.diet==='vegetarian') ? 1.5 : 1; // NIH: phytates in plant diets reduce zinc absorption
+      return Math.round(base*vegMult);
+    },
+    icon:'fa-shield-halved', color:'#a5d6a7', colorBg:'rgba(165,214,167,0.15)', freq:'daily',
+    desc:'Immune function, wound healing, testosterone production',
+    foods:[
+      {name:'Oysters (85g)', portion:'85g', coverage:74, calories:117},
+      {name:'Beef (100g)', portion:'100g', coverage:8.7, calories:250},
+      {name:'Pumpkin Seeds (30g)', portion:'30g', coverage:2.2, calories:170},
+      {name:'Chickpeas (100g)', portion:'100g cooked', coverage:1.5, calories:164},
+      {name:'Cashews (30g)', portion:'30g', coverage:1.6, calories:157},
+    ]
+  },
+  { id:'potassium', name:'Potassium', unit:'mg', daily: (p) => p.sex==='male'?3400:2600,
+    icon:'fa-heart', color:'#f48fb1', colorBg:'rgba(244,143,177,0.15)', freq:'daily',
+    desc:'Blood pressure regulation, muscle contractions, heart rhythm',
+    foods:[
+      {name:'Banana (1 medium)', portion:'1 medium', coverage:422, calories:105},
+      {name:'Sweet Potato (150g)', portion:'150g baked', coverage:694, calories:130},
+      {name:'Avocado (half)', portion:'half avocado', coverage:487, calories:120},
+      {name:'Spinach (100g)', portion:'100g cooked', coverage:558, calories:23},
+      {name:'Coconut Water (250ml)', portion:'250ml', coverage:600, calories:45},
+    ]
+  },
+  { id:'vitA', name:'Vitamin A', unit:'mcg', daily: (p) => p.sex==='male'?900:700,
+    icon:'fa-eye', color:'#ffcc80', colorBg:'rgba(255,204,128,0.15)', freq:'daily',
+    desc:'Vision, immune function, skin & cell growth',
+    foods:[
+      {name:'Beef Liver (85g)', portion:'85g', coverage:6582, calories:130},
+      {name:'Sweet Potato (150g)', portion:'150g', coverage:1403, calories:130},
+      {name:'Carrots (100g)', portion:'100g', coverage:835, calories:41},
+      {name:'Spinach (100g)', portion:'100g cooked', coverage:524, calories:23},
+      {name:'Eggs (2 large)', portion:'2 eggs', coverage:149, calories:143},
+    ]
+  },
+  { id:'vitE', name:'Vitamin E', unit:'mg', daily: () => 15,
+    icon:'fa-leaf', color:'#c5e1a5', colorBg:'rgba(197,225,165,0.15)', freq:'daily',
+    desc:'Antioxidant protection, immune health, skin repair',
+    foods:[
+      {name:'Sunflower Seeds (30g)', portion:'30g', coverage:10, calories:163},
+      {name:'Almonds (30g)', portion:'30g', coverage:7.7, calories:164},
+      {name:'Wheat Germ Oil (1 tsp)', portion:'5ml', coverage:20.3, calories:40},
+      {name:'Avocado (half)', portion:'half avocado', coverage:2.1, calories:120},
+      {name:'Spinach (100g)', portion:'100g cooked', coverage:3.7, calories:23},
+    ]
+  },
+  { id:'folate', name:'Folate (B9)', unit:'mcg', daily: () => 400,
+    icon:'fa-seedling', color:'#69f0ae', colorBg:'rgba(105,240,174,0.15)', freq:'daily',
+    desc:'Cell division, DNA synthesis, pregnancy health',
+    foods:[
+      {name:'Edamame (100g)', portion:'100g', coverage:311, calories:122},
+      {name:'Lentils (100g)', portion:'100g cooked', coverage:181, calories:116},
+      {name:'Spinach (100g)', portion:'100g cooked', coverage:263, calories:23},
+      {name:'Asparagus (100g)', portion:'100g', coverage:149, calories:20},
+      {name:'Black Beans (100g)', portion:'100g cooked', coverage:256, calories:132},
+    ]
+  },
+  // ── PERFORMANCE & BODY COMPOSITION ──
+  { id:'protein', name:'Protein', unit:'g', daily: (p) => {
+      const base = p.goal==='gain'?2.2:p.goal==='lose'?2.0:p.goal==='recomp'?1.8:1.6;
+      return Math.round((p.weight||70)*base);
+    },
+    icon:'fa-egg', color:'#f5a623', colorBg:'rgba(245,166,35,0.15)', freq:'daily',
+    desc:'Muscle repair & growth, enzymes, hormones, immune antibodies',
+    foods:[
+      {name:'Chicken Breast (150g)', portion:'150g cooked', coverage:46, calories:247},
+      {name:'Eggs (3 large)', portion:'3 eggs', coverage:19, calories:215},
+      {name:'Greek Yogurt (200g)', portion:'200g', coverage:20, calories:130},
+      {name:'Tuna (1 can, 140g)', portion:'1 can drained', coverage:34, calories:145},
+      {name:'Cottage Cheese (200g)', portion:'200g', coverage:28, calories:180},
+      {name:'Lentils (100g)', portion:'100g cooked', coverage:9, calories:116},
+      {name:'Whey Protein (1 scoop)', portion:'30g scoop', coverage:25, calories:120},
+      {name:'Tofu (150g)', portion:'150g', coverage:18, calories:115},
+    ]
+  },
+  { id:'creatine', name:'Creatine Monohydrate', unit:'g', daily: () => 5,
+    icon:'fa-bolt-lightning', color:'#3dd9a4', colorBg:'rgba(61,217,164,0.15)', freq:'daily',
+    desc:'Strength, power output, muscle energy (ATP), cognitive function',
+    foods:[
+      {name:'Beef (200g)', portion:'200g', coverage:1.0, calories:500},
+      {name:'Salmon (200g)', portion:'200g', coverage:0.9, calories:416},
+      {name:'Herring (200g)', portion:'200g', coverage:1.5, calories:358},
+      {name:'Pork (200g)', portion:'200g', coverage:1.0, calories:440},
+      {name:'Creatine Supplement (5g)', portion:'1 tsp powder', coverage:5.0, calories:0},
+    ]
+  },
+  { id:'collagen', name:'Collagen Peptides', unit:'g', daily: () => 10,
+    icon:'fa-hand-sparkles', color:'#f48fb1', colorBg:'rgba(244,143,177,0.15)', freq:'daily',
+    desc:'Skin elasticity, joint health, gut lining, connective tissue repair',
+    foods:[
+      {name:'Bone Broth (250ml)', portion:'250ml', coverage:4, calories:45},
+      {name:'Chicken Skin (50g)', portion:'50g', coverage:3, calories:150},
+      {name:'Salmon Skin (50g)', portion:'50g', coverage:2, calories:130},
+      {name:'Egg Whites (3 large)', portion:'3 egg whites', coverage:1, calories:52},
+      {name:'Collagen Powder (10g)', portion:'1 tbsp', coverage:10, calories:38},
+    ]
+  },
+  // ── GUT & MICROBIOME ──
+  { id:'probiotics', name:'Probiotics', unit:'billion CFU', daily: () => 10,
+    icon:'fa-bacteria', color:'#69f0ae', colorBg:'rgba(105,240,174,0.15)', freq:'daily',
+    desc:'Gut microbiome diversity, immune health, mood via gut-brain axis',
+    foods:[
+      {name:'Greek Yogurt (200g)', portion:'200g live cultures', coverage:5, calories:130},
+      {name:'Kefir (250ml)', portion:'250ml', coverage:12, calories:150},
+      {name:'Kimchi (100g)', portion:'100g', coverage:8, calories:23},
+      {name:'Sauerkraut (100g)', portion:'100g', coverage:7, calories:19},
+      {name:'Kombucha (250ml)', portion:'250ml', coverage:4, calories:60},
+      {name:'Miso Soup (1 bowl)', portion:'1 bowl', coverage:5, calories:40},
+      {name:'Probiotic Supplement', portion:'1 capsule', coverage:10, calories:0},
+    ]
+  },
+  { id:'fiber', name:'Dietary Fiber', unit:'g', daily: (p) => {
+      if(p.age>50) return p.sex==='male'?30:21;
+      return p.sex==='male'?38:25;
+    },
+    icon:'fa-wheat-awn', color:'#c5e1a5', colorBg:'rgba(197,225,165,0.15)', freq:'daily',
+    desc:'Gut motility, cholesterol control, blood sugar regulation, satiety',
+    foods:[
+      {name:'Oats (80g dry)', portion:'80g', coverage:10, calories:310},
+      {name:'Black Beans (100g)', portion:'100g cooked', coverage:8.7, calories:132},
+      {name:'Avocado (half)', portion:'half', coverage:5, calories:120},
+      {name:'Chia Seeds (20g)', portion:'20g (1.5 tbsp)', coverage:7, calories:97},
+      {name:'Broccoli (100g)', portion:'100g', coverage:2.6, calories:34},
+      {name:'Apple (1 medium)', portion:'1 with skin', coverage:4.4, calories:95},
+      {name:'Lentils (100g)', portion:'100g cooked', coverage:7.9, calories:116},
+    ]
+  },
+  // ── CELLULAR & HEART ──
+  { id:'coq10', name:'CoQ10 (Ubiquinol)', unit:'mg', daily: () => 100,
+    icon:'fa-heart-circle-bolt', color:'#ef9a9a', colorBg:'rgba(239,154,154,0.15)', freq:'daily',
+    desc:'Mitochondrial energy, heart health, antioxidant — especially if on statins',
+    foods:[
+      {name:'Beef Heart (100g)', portion:'100g', coverage:113, calories:185},
+      {name:'Beef (100g)', portion:'100g', coverage:31, calories:250},
+      {name:'Sardines (100g)', portion:'100g', coverage:64, calories:208},
+      {name:'Pork (100g)', portion:'100g', coverage:25, calories:195},
+      {name:'Spinach (200g)', portion:'200g cooked', coverage:2, calories:46},
+      {name:'CoQ10 Supplement', portion:'100mg softgel', coverage:100, calories:0},
+    ]
+  },
+  // ── VITAMINS ──
+  { id:'vitB6', name:'Vitamin B6', unit:'mg', daily: (p) => {
+      if(p.age>50) return p.sex==='male'?1.7:1.5;
+      return 1.3;
+    },
+    icon:'fa-dna', color:'#ce93d8', colorBg:'rgba(206,147,216,0.15)', freq:'daily',
+    desc:'Protein metabolism, neurotransmitter synthesis, PMS relief, immune function',
+    foods:[
+      {name:'Chickpeas (100g)', portion:'100g cooked', coverage:1.1, calories:164},
+      {name:'Salmon (100g)', portion:'100g', coverage:1.0, calories:208},
+      {name:'Chicken Breast (100g)', portion:'100g', coverage:0.9, calories:165},
+      {name:'Banana (1 medium)', portion:'1 medium', coverage:0.4, calories:105},
+      {name:'Potato (150g)', portion:'150g baked', coverage:0.7, calories:130},
+    ]
+  },
+  { id:'biotin', name:'Biotin (Vitamin B7)', unit:'mcg', daily: () => 30,
+    icon:'fa-spa', color:'#ffcc80', colorBg:'rgba(255,204,128,0.15)', freq:'daily',
+    desc:'Hair, nail & skin health, fat & carbohydrate metabolism',
+    foods:[
+      {name:'Eggs (2 cooked)', portion:'2 whole eggs', coverage:20, calories:143},
+      {name:'Beef Liver (85g)', portion:'85g', coverage:31, calories:130},
+      {name:'Almonds (30g)', portion:'30g', coverage:1.5, calories:164},
+      {name:'Sweet Potato (150g)', portion:'150g', coverage:2.4, calories:130},
+      {name:'Salmon (100g)', portion:'100g', coverage:5, calories:208},
+    ]
+  },
+  { id:'iodine', name:'Iodine', unit:'mcg', daily: () => 150,
+    icon:'fa-droplet', color:'#80deea', colorBg:'rgba(128,222,234,0.15)', freq:'daily',
+    desc:'Thyroid hormone production, metabolism regulation, fetal brain development',
+    foods:[
+      {name:'Seaweed / Nori (5g)', portion:'5g', coverage:232, calories:9},
+      {name:'Cod Fish (100g)', portion:'100g', coverage:99, calories:82},
+      {name:'Milk (250ml)', portion:'250ml', coverage:88, calories:122},
+      {name:'Iodized Salt (1/4 tsp)', portion:'1/4 tsp', coverage:71, calories:0},
+      {name:'Shrimp (100g)', portion:'100g', coverage:35, calories:99},
+      {name:'Eggs (2 large)', portion:'2 eggs', coverage:54, calories:143},
+    ]
+  },
+  // WEEKLY
+  { id:'vitB1', name:'Vitamin B1 (Thiamine)', unit:'mg', daily: (p) => p.sex==='male'?1.2:1.1,
+    icon:'fa-brain', color:'#b39ddb', colorBg:'rgba(179,157,219,0.15)', freq:'weekly', weeklyTarget: 3,
+    desc:'Carbohydrate metabolism, nerve function — check 3x/week',
+    foods:[
+      {name:'Whole Grain Bread (2 slices)', portion:'2 slices', coverage:0.3, calories:160},
+      {name:'Pork Loin (100g)', portion:'100g', coverage:0.9, calories:195},
+      {name:'Sunflower Seeds (30g)', portion:'30g', coverage:0.5, calories:163},
+      {name:'Edamame (100g)', portion:'100g', coverage:0.3, calories:122},
+    ]
+  },
+  { id:'vitK2', name:'Vitamin K2', unit:'mcg', daily: () => 120,
+    icon:'fa-circle-nodes', color:'#80cbc4', colorBg:'rgba(128,203,196,0.15)', freq:'weekly', weeklyTarget: 3,
+    desc:'Bone & cardiovascular health — adequate 3–4x weekly',
+    foods:[
+      {name:'Natto (100g)', portion:'100g', coverage:1103, calories:212},
+      {name:'Hard Cheese (30g)', portion:'30g', coverage:19, calories:113},
+      {name:'Egg Yolk (2 eggs)', portion:'2 eggs', coverage:13, calories:110},
+      {name:'Chicken Liver (85g)', portion:'85g', coverage:55, calories:119},
+    ]
+  },
+  { id:'chromium', name:'Chromium', unit:'mcg', daily: (p) => {
+      if(p.age>50) return p.sex==='male'?30:20;
+      return p.sex==='male'?35:25;
+    },
+    icon:'fa-gauge-high', color:'#ffab91', colorBg:'rgba(255,171,145,0.15)', freq:'weekly', weeklyTarget: 3,
+    desc:'Blood sugar regulation — track 3x/week',
+    foods:[
+      {name:'Broccoli (100g)', portion:'100g', coverage:22, calories:34},
+      {name:'Grape Juice (250ml)', portion:'250ml', coverage:8, calories:150},
+      {name:'Beef (100g)', portion:'100g', coverage:2, calories:250},
+      {name:'Whole Wheat Bread (2sl)', portion:'2 slices', coverage:4, calories:160},
+    ]
+  },
+  { id:'electrolytes', name:'Electrolytes (Sodium+)', unit:'mg', daily: (p) => p.activity==='athlete'?3400:p.activity==='active'?2300:1500,
+    icon:'fa-wave-square', color:'#64b5f6', colorBg:'rgba(100,181,246,0.15)', freq:'weekly', weeklyTarget: 3,
+    desc:'Hydration balance, muscle cramps, nerve signals — especially post-workout',
+    foods:[
+      {name:'Coconut Water (500ml)', portion:'500ml', coverage:450, calories:90},
+      {name:'Sports Drink (500ml)', portion:'500ml', coverage:400, calories:130},
+      {name:'Banana + Pinch Salt', portion:'1 banana + 1/4 tsp salt', coverage:700, calories:110},
+      {name:'Watermelon (300g)', portion:'300g', coverage:270, calories:90},
+      {name:'Electrolyte Tablet', portion:'1 tablet in water', coverage:500, calories:10},
+    ]
+  },
+];
+
+// ═══════════════════ HELPERS ═══════════════════
+function activeSupps() {
+  if(!state.trackedSupps) return SUPPLEMENTS;
+  return SUPPLEMENTS.filter(s => state.trackedSupps.includes(s.id));
+}
+function activeDailySupps() { return activeSupps().filter(s=>s.freq==='daily'); }
+function activeWeeklySupps() { return activeSupps().filter(s=>s.freq==='weekly'); }
+const today = () => new Date().toISOString().slice(0,10);
+const weekKey = () => {
+  const d=new Date(); const jan1=new Date(d.getFullYear(),0,1);
+  return d.getFullYear()+'-W'+Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+};
+const monthKey = () => new Date().toISOString().slice(0,7);
+
+function getTarget(supp) { return supp.daily(state.profile); }
+function getLogged(suppId) { return state.logs[today()]?.[suppId] || 0; }
+function getPct(suppId) {
+  const s=SUPPLEMENTS.find(x=>x.id===suppId); if(!s) return 0;
+  return Math.min(100, Math.round((getLogged(suppId)/getTarget(s))*100));
+}
+function getWeeklyDone(suppId) { return !!(state.weeklyLogs[weekKey()]?.[suppId]); }
+function pctColor(p) { return p>=80?'var(--mint)':p>=40?'var(--amber)':'var(--coral)'; }
+
+// ═══════════════════ SAVE/LOAD ═══════════════════
+function save() { localStorage.setItem('nutritrack_v2', JSON.stringify(state)); }
+function load() {
+  try {
+    const d=localStorage.getItem('nutritrack_v2');
+    if(d) { state={...state,...JSON.parse(d)}; }
+  } catch(e){}
+}
+function exportData() {
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='nutritrack-backup-'+today()+'.json'; a.click();
+  toast('success','Export Complete','Your data has been downloaded as JSON.');
+}
+function importData(e) {
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{ try{state={...state,...JSON.parse(ev.target.result)};save();renderAll();toast('success','Import Successful','Your data has been loaded.');}catch(ex){toast('warn','Import Failed','Invalid file format.');} };
+  r.readAsText(f); e.target.value='';
+}
+
+// ═══════════════════ RENDER ═══════════════════
+function renderAll() {
+  renderDashboard(); renderTracker(); renderProgress(); renderProfile(); renderTips();
+}
+
+function renderDashboard() {
+  const d=new Date();
+  const h=d.getHours();
+  const greeting = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  document.getElementById('dashGreeting').textContent = (greeting) + (state.profile.name?', '+state.profile.name+'!':'!');
+  document.getElementById('dashDate').textContent = d.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const dailySupps=activeDailySupps();
+  const done=dailySupps.filter(s=>getPct(s.id)>=80).length;
+  const pend=dailySupps.length-done;
+  const totalPct=Math.round(dailySupps.reduce((a,s)=>a+getPct(s.id),0)/dailySupps.length);
+  const weeklyDone=activeWeeklySupps().filter(s=>getWeeklyDone(s.id)).length;
+  const calFromFood=state.foodLogs[today()]?.reduce((a,f)=>a+(f.calories||0),0)||0;
+
+  document.getElementById('overallPct').textContent=totalPct+'%';
+  document.getElementById('statComp').textContent=done;
+  document.getElementById('statPend').textContent=pend;
+  document.getElementById('statWeekly').textContent=weeklyDone+'/'+activeWeeklySupps().length;
+  document.getElementById('statCalories').textContent=Math.round(calFromFood);
+
+  // Streak
+  updateStreak();
+  document.getElementById('streakNum').textContent=state.streak;
+
+  // Ring chart
+  if(ringChart) ringChart.destroy();
+  const ctx=document.getElementById('ringChart').getContext('2d');
+  ringChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{ datasets:[{data:[totalPct,100-totalPct],backgroundColor:['#3dd9a4','rgba(255,255,255,0.05)'],borderWidth:0,hoverOffset:0}] },
+    options:{ cutout:'78%',responsive:false,plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:800} }
+  });
+
+  // Deficient list
+  const defList=document.getElementById('deficientList');
+  const defSupps=dailySupps.filter(s=>getPct(s.id)<50).sort((a,b)=>getPct(a.id)-getPct(b.id)).slice(0,5);
+  defList.innerHTML=defSupps.map(s=>`<span class="badge badge-warn"><i class="fa-solid fa-circle-exclamation"></i>${s.name} ${getPct(s.id)}%</span>`).join('')||'<span style="color:var(--mint);font-size:0.82rem"><i class="fa-solid fa-check-circle"></i> Great job! No major deficiencies.</span>';
+
+  // Missing alert
+  const missing=dailySupps.filter(s=>getPct(s.id)<20);
+  const alertEl=document.getElementById('missingAlert');
+  if(missing.length){alertEl.style.display='block';document.getElementById('missingText').textContent=`You're very low on: ${missing.map(s=>s.name).join(', ')}. Consider taking these now!`;}
+  else alertEl.style.display='none';
+
+  // Quick log
+  const ql=document.getElementById('quickLogList');
+  ql.innerHTML=dailySupps.map(s=>{
+    const p=getPct(s.id);
+    return `<div class="supp-item">
+      <div class="supp-header" onclick="quickLogToggle(this,event,'${s.id}')">
+        <div class="supp-icon" style="background:${s.colorBg}"><i class="fa-solid ${s.icon}" style="color:${s.color}"></i></div>
+        <div class="supp-info"><div class="supp-name">${s.name}</div><div class="supp-desc">${Math.round(getLogged(s.id))} / ${Math.round(getTarget(s))} ${s.unit}</div></div>
+        <div class="supp-meta">
+          <div class="supp-progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${p}%;background:${pctColor(p)}"></div></div><div class="progress-pct" style="color:${pctColor(p)}">${p}%</div></div>
+          <button class="log-btn ${p>=80?'done':''}" onclick="event.stopPropagation();openLogModal('${s.id}')">${p>=80?'<i class="fa-solid fa-check"></i> Done':'+ Log'}</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Notifications
+  renderNotifSchedule();
+}
+
+function quickLogToggle(el,e,id){ /* collapsed in dashboard */ }
+
+function renderNotifSchedule(){
+  const times=[
+    {key:'morning',label:'Morning Reminder',time:'8:00 AM',icon:'fa-cloud-sun',msg:'Start your day with your morning supplements.'},
+    {key:'afternoon',label:'Afternoon Check',time:'1:00 PM',icon:'fa-sun',msg:'Midday check — have you had your lunch-time supplements?'},
+    {key:'evening',label:'Evening Reminder',time:'7:00 PM',icon:'fa-cloud-moon',msg:'Evening check — complete your daily supplement targets.'},
+  ];
+  document.getElementById('notifSchedule').innerHTML=times.map(t=>`
+    <div class="notif-row">
+      <div style="display:flex;align-items:center;gap:10px">
+        <i class="fa-solid ${t.icon}" style="color:var(--amber);width:18px"></i>
+        <div><div style="font-size:0.85rem;font-weight:500">${t.label}</div><div style="font-size:0.75rem;color:var(--text2)">${t.time} · ${t.msg}</div></div>
+      </div>
+      <label class="toggle"><input type="checkbox" ${state.notifs[t.key]?'checked':''} onchange="toggleNotif('${t.key}',this.checked)"><div class="toggle-slider"></div></label>
+    </div>`).join('');
+}
+function toggleNotif(key,val){
+  state.notifs[key]=val;save();
+  if(val) ensureNotificationPermission();
+}
+
+// ─── BROWSER NOTIFICATIONS ───
+function ensureNotificationPermission(showFeedback){
+  if(!('Notification' in window)){
+    if(showFeedback) toast('warn','Not Supported','Your browser does not support notifications.');
+    return;
+  }
+  if(Notification.permission==='granted'){
+    if(showFeedback) toast('success','Already Enabled','Browser notifications are already turned on.');
+    updateNotifPermissionUI();
+    return;
+  }
+  if(Notification.permission==='denied'){
+    if(showFeedback) toast('warn','Blocked','Notifications are blocked. Enable them in your browser site settings, then reload this page.');
+    updateNotifPermissionUI();
+    return;
+  }
+  Notification.requestPermission().then(()=>{
+    updateNotifPermissionUI();
+    if(Notification.permission==='granted' && showFeedback) toast('success','Notifications Enabled','You will now get reminders even when this tab is in the background.');
+    else if(showFeedback) toast('warn','Not Enabled','You chose not to allow notifications. In-app reminders will still work while this tab is open.');
+  });
+}
+function updateNotifPermissionUI(){
+  const row=document.getElementById('notifPermissionRow');
+  const btn=document.getElementById('enableNotifBtn');
+  if(!row||!btn) return;
+  const supported='Notification' in window;
+  if(!supported){ row.style.display='none'; btn.style.display='none'; return; }
+  if(Notification.permission==='denied'){ row.style.display='flex'; btn.style.display='none'; }
+  else if(Notification.permission==='granted'){ row.style.display='none'; btn.innerHTML='<i class="fa-solid fa-bell"></i> Notifications Enabled'; btn.disabled=true; btn.style.opacity='.7'; btn.style.cursor='default'; }
+  else { row.style.display='none'; btn.style.display='inline-flex'; }
+}
+function fireNotification(title,msg){
+  toast('warn',title,msg);
+  if('Notification' in window && Notification.permission==='granted'){
+    try{ new Notification(title.replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu,'').trim(), { body: msg, tag:'nutritrack-'+title }); }
+    catch(e){ /* ignore */ }
+  }
+}
+function sendTestNotification(){
+  fireNotification('Test Reminder 🔔','This is what your supplement reminders will look like.');
+}
+function generateICS(){
+  const slots=[
+    {key:'morning', hour:8, minute:0, title:'NutriTrack: Morning Supplements ☀️', desc:'Time to take your morning supplements.'},
+    {key:'afternoon', hour:13, minute:0, title:'NutriTrack: Afternoon Check 🌤', desc:'Midday check — have you had your supplements?'},
+    {key:'evening', hour:19, minute:0, title:'NutriTrack: Evening Reminder 🌙', desc:"Complete today's supplement targets."},
+  ];
+  const active=slots.filter(s=>state.notifs[s.key]);
+  if(active.length===0){ toast('warn','Nothing to export','Turn on at least one reminder toggle above first.'); return; }
+  const pad=n=>String(n).padStart(2,'0');
+  const now=new Date();
+  const dtstamp=now.getUTCFullYear()+pad(now.getUTCMonth()+1)+pad(now.getUTCDate())+'T'+pad(now.getUTCHours())+pad(now.getUTCMinutes())+pad(now.getUTCSeconds())+'Z';
+  let ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//NutriTrack//Reminders//EN\r\nCALSCALE:GREGORIAN\r\n';
+  active.forEach((s,i)=>{
+    const d=new Date(); d.setHours(s.hour,s.minute,0,0);
+    const dtStart=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(s.hour)+pad(s.minute)+'00';
+    ics += ['BEGIN:VEVENT',
+      'UID:nutritrack-'+s.key+'-'+Date.now()+i+'@nutritrack.app',
+      'DTSTAMP:'+dtstamp,
+      'DTSTART:'+dtStart,
+      'DURATION:PT10M',
+      'RRULE:FREQ=DAILY',
+      'SUMMARY:'+s.title,
+      'DESCRIPTION:'+s.desc,
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:'+s.title,
+      'TRIGGER:-PT0M',
+      'END:VALARM',
+      'END:VEVENT'].join('\r\n') + '\r\n';
+  });
+  ics += 'END:VCALENDAR\r\n';
+  const blob=new Blob([ics],{type:'text/calendar'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='nutritrack-reminders.ics'; a.click();
+  toast('success','Calendar File Downloaded','Open the downloaded file to add it to your phone\'s calendar — it will notify you daily even when NutriTrack isn\'t open.');
+}
+
+function renderTracker(){
+  document.getElementById('trackerDate').textContent = today();
+  const html=activeSupps().map(s=>{
+    const p = s.freq==='weekly' ? (getWeeklyDone(s.id)?100:0) : getPct(s.id);
+    const target=getTarget(s);
+    const logged=s.freq==='weekly'?null:getLogged(s.id);
+    const statusLabel = s.freq==='weekly'
+      ? (getWeeklyDone(s.id)?'<span class="badge badge-daily"><i class="fa-solid fa-check"></i> Done this week</span>':'<span class="badge badge-weekly"><i class="fa-solid fa-calendar-week"></i> Weekly</span>')
+      : '';
+    const foodsHtml=s.foods.map(f=>{
+      const pct=Math.min(100,Math.round((f.coverage/target)*100));
+      const isLogged=state.foodLogs[today()]?.some(l=>l.suppId===s.id&&l.foodName===f.name);
+      return `<div class="food-card ${isLogged?'logged':''}" onclick="logFood('${s.id}','${f.name}',${f.coverage},${f.calories||0})">
+        <div class="food-name">${f.name}</div>
+        <div class="food-portion">${f.portion}</div>
+        <div class="food-coverage"><i class="fa-solid fa-circle-check"></i> +${pct}% of daily target</div>
+        <div class="food-calories">~${f.calories} kcal · ${f.coverage}${s.unit}</div>
+        ${isLogged?'<div style="font-size:0.72rem;color:var(--mint);margin-top:2px"><i class="fa-solid fa-check"></i> Logged today</div>':''}
+      </div>`;
+    }).join('');
+    return `<div class="supp-item" id="si-${s.id}">
+      <div class="supp-header" onclick="toggleSupp('${s.id}')">
+        <div class="supp-icon" style="background:${s.colorBg}"><i class="fa-solid ${s.icon}" style="color:${s.color}"></i></div>
+        <div class="supp-info">
+          <div class="supp-name">${s.name} ${s.freq==='weekly'?'<span class="weekly-indicator"><i class="fa-solid fa-calendar-week"></i> Weekly</span>':''}</div>
+          <div class="supp-desc">${s.desc}</div>
+        </div>
+        <div class="supp-meta">
+          <div class="supp-progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" style="width:${p}%;background:${pctColor(p)}"></div></div>
+            <div class="progress-pct" style="color:${pctColor(p)}">${s.freq==='weekly'?(getWeeklyDone(s.id)?'Done':'Pending'):`${p}% · ${Math.round(logged||0)}/${Math.round(target)}${s.unit}`}</div>
+          </div>
+          ${statusLabel}
+          <button class="log-btn ${p>=80||getWeeklyDone(s.id)?'done':''}" onclick="event.stopPropagation();openLogModal('${s.id}')">
+            ${p>=80||getWeeklyDone(s.id)?'<i class="fa-solid fa-check"></i> Done':'+ Log'}
+          </button>
+          <i class="fa-solid fa-chevron-down chevron"></i>
+        </div>
+      </div>
+      <div class="supp-body">
+        <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px">
+          ${s.freq==='weekly'?`<strong>Weekly Supplement</strong> — Track ${s.weeklyTarget||3}x per week. Current week: ${getWeeklyDone(s.id)?'✅ Logged':'⏳ Pending'}`:`<strong>Daily Target:</strong> ${Math.round(target)} ${s.unit} · <strong>Logged:</strong> ${Math.round(logged||0)} ${s.unit} · <strong>Remaining:</strong> ${Math.max(0,Math.round(target-(logged||0)))} ${s.unit}`}
+        </div>
+        <div style="font-size:0.82rem;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Food Sources</div>
+        <div class="food-grid">${foodsHtml}</div>
+        <button class="btn-sm mt-2" onclick="openLogModal('${s.id}')"><i class="fa-solid fa-pen"></i> Log Custom Amount</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('suppList').innerHTML=html;
+}
+
+function toggleSupp(id){
+  const el=document.getElementById('si-'+id);
+  el.classList.toggle('open');
+}
+
+function logFood(suppId, foodName, coverage, calories){
+  const s=SUPPLEMENTS.find(x=>x.id===suppId);
+  if(!s) return;
+  if(!state.logs[today()]) state.logs[today()]={};
+  state.logs[today()][suppId]=(state.logs[today()][suppId]||0)+coverage;
+  if(!state.foodLogs[today()]) state.foodLogs[today()]=[];
+  // remove duplicate
+  state.foodLogs[today()]=state.foodLogs[today()].filter(l=>!(l.suppId===suppId&&l.foodName===foodName));
+  state.foodLogs[today()].push({suppId,foodName,amount:coverage,calories,time:new Date().toLocaleTimeString()});
+  if(s.freq==='weekly'){ if(!state.weeklyLogs[weekKey()]) state.weeklyLogs[weekKey()]={};  state.weeklyLogs[weekKey()][suppId]=true; }
+  save(); renderTracker(); renderDashboard();
+  const pct=Math.min(100,Math.round((coverage/getTarget(s))*100));
+  toast('success',`${s.name} logged`,`${foodName} · +${pct}% of daily target`);
+}
+
+// ─── PER-SUPPLEMENT TIPS ───
+const SUPP_TIPS = {
+  vitD:       '☀️ <strong>Safe upper limit: 4000 IU/day.</strong> Take with a fatty meal — it\'s fat-soluble. Pair with Vitamin K2 for optimal calcium routing to bones.',
+  vitC:       '🍊 <strong>Upper limit: 2000mg/day.</strong> Split doses across the day for better absorption. Excess is excreted in urine, so mega-doses above 1000mg rarely help.',
+  vitB12:     '🧬 <strong>No established upper limit</strong> — B12 is water-soluble and excess is excreted. Methylcobalamin form absorbs better than cyanocobalamin.',
+  iron:       '⚠️ <strong>Upper limit: 45mg/day.</strong> Take with Vitamin C to boost absorption. Avoid with calcium or coffee — they block iron uptake. Never supplement without confirmed deficiency.',
+  calcium:    '🦴 <strong>Upper limit: 2500mg/day.</strong> Split doses — the body absorbs ≤500mg at a time. Take with Vitamin D3. Avoid taking with iron supplements.',
+  magnesium:  '⚡ <strong>Upper limit (supplement): 350mg/day.</strong> Glycinate or malate forms are gentlest on digestion. Best taken in the evening — it promotes relaxation and sleep.',
+  omega3:     '🐟 <strong>Upper limit: ~3000mg EPA+DHA/day.</strong> Take with meals to prevent fishy burps. Refrigerate liquid forms. Choose brands tested for heavy metals.',
+  zinc:       '🛡️ <strong>Upper limit: 40mg/day.</strong> Long-term high doses deplete copper. Take with food to avoid nausea. Zinc picolinate or bisglycinate absorb best.',
+  potassium:  '❤️ <strong>Upper limit (supplement): 99mg/tab</strong> — high doses can affect heart rhythm. Get potassium mainly from food. Consult a doctor if on blood pressure meds.',
+  vitA:       '⚠️ <strong>Upper limit: 3000 mcg/day (retinol form).</strong> Fat-soluble — can accumulate. Prefer beta-carotene from food (body self-regulates). Avoid high doses during pregnancy.',
+  vitE:       '🌿 <strong>Upper limit: 1000mg/day.</strong> Fat-soluble — take with food. High doses can thin blood; avoid before surgery or if on blood thinners.',
+  folate:     '🌱 <strong>Upper limit: 1000 mcg/day</strong> (synthetic folic acid). Prefer methylfolate (5-MTHF) if you have the MTHFR gene variant. Critical for pregnancy.',
+  protein:    '🥚 <strong>Target: your body weight × 1.6–2.2g/kg.</strong> Spread intake across 3–5 meals — muscle protein synthesis peaks at ~30–40g per meal. Leucine is the key trigger.',
+  creatine:   '⚡ <strong>5g/day is optimal</strong> — no loading phase needed. Mix in water or juice. Safe long-term. Take consistently; timing (pre vs post workout) matters little.',
+  collagen:   '✨ <strong>10–15g/day works best</strong> when taken with Vitamin C, which is essential for collagen synthesis. Hydrolysed peptides absorb better than gelatin.',
+  probiotics: '🦠 <strong>10–50 billion CFU</strong> is the typical effective range. Take on an empty stomach or with a small meal. Rotate strains every few months for diversity.',
+  fiber:      '🌾 <strong>Increase intake gradually</strong> to avoid bloating. Drink plenty of water alongside fiber. Aim for a mix of soluble (oats, psyllium) and insoluble (vegetables) fiber.',
+  coq10:      '💛 <strong>100–300mg/day</strong> with a fatty meal (fat-soluble). Ubiquinol form is more bioavailable than ubiquinone, especially for people over 40.',
+  vitB6:      '🔬 <strong>Upper limit: 100mg/day.</strong> Very high doses (>200mg) can cause nerve tingling. Pyridoxal-5-phosphate (P5P) is the active form and absorbs best.',
+  biotin:     '💅 <strong>30–100 mcg/day</strong> is typically sufficient. Raw egg whites block biotin absorption — always cook eggs. High-dose biotin can interfere with lab thyroid tests.',
+  iodine:     '🌊 <strong>Upper limit: 1100 mcg/day.</strong> Both deficiency and excess harm the thyroid. Don\'t over-supplement if you eat seaweed regularly or use iodized salt.',
+  vitB1:      '🧠 <strong>No established upper limit</strong> — water-soluble and excreted safely. Found in whole grains; deficiency is more common with high alcohol intake.',
+  vitK2:      '🦴 <strong>No established upper limit.</strong> MK-7 form (from natto) has the longest half-life. Works synergistically with Vitamin D3 and calcium for bone health.',
+  chromium:   '📊 <strong>Upper limit: 1000 mcg/day.</strong> Picolinate form is most studied. Helps insulin sensitivity — most useful for people with blood sugar concerns.',
+  electrolytes:'💧 <strong>Needs vary with sweat loss.</strong> Don\'t over-supplement sodium if you have high blood pressure. Post-workout: aim for 500mg sodium + 200mg potassium per litre of sweat.',
+};
+function getSuppTip(s) {
+  return SUPP_TIPS[s.id] || `<strong>${s.name}:</strong> Log the amount you consumed today. Consistent daily tracking gives the most accurate progress data.`;
+}
+
+// ─── LOG MODAL ───
+function openLogModal(suppId){
+  currentLogSupp=suppId;
+  const s=SUPPLEMENTS.find(x=>x.id===suppId);
+  const target=getTarget(s);
+  const logged=getLogged(suppId);
+  document.getElementById('logModalContent').innerHTML=`
+    <div style="margin-bottom:1rem">
+      <div style="font-size:0.9rem;color:var(--text2)">Supplement: <strong style="color:var(--text)">${s.name}</strong></div>
+      <div style="font-size:0.85rem;color:var(--text2);margin-top:4px">Daily target: ${Math.round(target)} ${s.unit} · Logged: ${Math.round(logged)} ${s.unit}</div>
+    </div>
+    <div class="log-amount-modal">
+      <div class="form-group"><label>Amount (${s.unit})</label><input class="amount-input" type="number" id="logAmount" placeholder="Enter amount" min="0" step="0.1" value="${Math.round(target-logged)>0?Math.round(target-logged):''}" /></div>
+      ${s.freq==='weekly'?`<div class="form-group"><label>Mark weekly log</label><select class="amount-input" id="logWeekly"><option value="1">Yes — mark as done this week</option><option value="0">No — just add amount</option></select></div>`:''}
+    </div>
+    <div class="tip-box mt-2" style="font-size:0.78rem">${getSuppTip(s)}</div>
+  `;
+  document.getElementById('logModal').classList.add('open');
+}
+function closeModal(){ document.getElementById('logModal').classList.remove('open'); currentLogSupp=null; }
+function confirmLog(){
+  if(!currentLogSupp) return;
+  const s=SUPPLEMENTS.find(x=>x.id===currentLogSupp);
+  const amt=parseFloat(document.getElementById('logAmount').value)||0;
+  if(amt<=0){ toast('warn','No amount','Please enter an amount greater than 0.'); return; }
+  if(!state.logs[today()]) state.logs[today()]={};
+  state.logs[today()][currentLogSupp]=(state.logs[today()][currentLogSupp]||0)+amt;
+  if(s.freq==='weekly'){
+    const wkOpt=document.getElementById('logWeekly');
+    if(!wkOpt||wkOpt.value==='1'){ if(!state.weeklyLogs[weekKey()]) state.weeklyLogs[weekKey()]={};  state.weeklyLogs[weekKey()][currentLogSupp]=true; }
+  }
+  save(); closeModal(); renderAll();
+  toast('success',`${s.name} logged`,`+${amt} ${s.unit} added to today's log.`);
+}
+
+// ─── PROGRESS ───
+function renderProgress(){
+  // Weekly chart
+  const last7=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const key=d.toISOString().slice(0,10);
+    const dailyS=activeDailySupps();
+    const pct=Math.round(dailyS.length?dailyS.reduce((a,s)=>{const t=getTarget(s);const l=state.logs[key]?.[s.id]||0;return a+Math.min(100,(l/t)*100);},0)/dailyS.length:0);
+    last7.push({label:d.toLocaleDateString('en',{weekday:'short'}),pct});
+  }
+  if(weeklyChart) weeklyChart.destroy();
+  weeklyChart=new Chart(document.getElementById('weeklyChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:last7.map(x=>x.label),datasets:[{label:'Completion %',data:last7.map(x=>x.pct),backgroundColor:last7.map(x=>x.pct>=80?'#3dd9a4':x.pct>=40?'#f5a623':'#ff6b6b'),borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8fa3b8',callback:v=>v+'%'}},x:{grid:{display:false},ticks:{color:'#8fa3b8'}}}}
+  });
+
+  // Monthly trend
+  const last4weeks=[];
+  for(let i=3;i>=0;i--){
+    let total=0,days=0;
+    for(let d=0;d<7;d++){
+      const date=new Date(); date.setDate(date.getDate()-(i*7+d));
+      const key=date.toISOString().slice(0,10);
+      if(state.logs[key]){
+        const dailyS=activeDailySupps();
+        const pct=Math.round(dailyS.length?dailyS.reduce((a,s)=>{const t=getTarget(s);const l=state.logs[key]?.[s.id]||0;return a+Math.min(100,(l/t)*100);},0)/dailyS.length:0);
+        total+=pct; days++;
+      }
+    }
+    last4weeks.push({label:`Week ${4-i}`,pct:days?Math.round(total/days):0});
+  }
+  if(monthlyChart) monthlyChart.destroy();
+  monthlyChart=new Chart(document.getElementById('monthlyChart').getContext('2d'),{
+    type:'line',
+    data:{labels:last4weeks.map(x=>x.label),datasets:[{label:'Avg Completion',data:last4weeks.map(x=>x.pct),borderColor:'#3dd9a4',backgroundColor:'rgba(61,217,164,0.1)',tension:.4,fill:true,pointBackgroundColor:'#3dd9a4',pointRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8fa3b8',callback:v=>v+'%'}},x:{grid:{display:false},ticks:{color:'#8fa3b8'}}}}
+  });
+
+  // Breakdown radar
+  const radarIds=['protein','vitD','vitC','omega3','calcium','magnesium','iron','zinc'];
+  const topSupps=activeSupps().filter(s=>radarIds.includes(s.id));
+  if(breakdownChart) breakdownChart.destroy();
+  breakdownChart=new Chart(document.getElementById('breakdownChart').getContext('2d'),{
+    type:'radar',
+    data:{labels:topSupps.map(s=>s.name),datasets:[{label:'Today',data:topSupps.map(s=>getPct(s.id)),borderColor:'#3dd9a4',backgroundColor:'rgba(61,217,164,0.15)',pointBackgroundColor:'#3dd9a4'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,0.1)'},ticks:{color:'#8fa3b8',backdropColor:'transparent'},pointLabels:{color:'#8fa3b8',font:{size:11}}}}}
+  });
+
+  // Achievements
+  const ach=[
+    {id:'first_log',icon:'fa-star',label:'First Steps',desc:'Log your first supplement',cond:Object.keys(state.logs).length>0},
+    {id:'streak3',icon:'fa-fire',label:'On Fire',desc:'3-day streak',cond:state.streak>=3,color:'var(--amber)'},
+    {id:'streak7',icon:'fa-trophy',label:'Week Warrior',desc:'7-day streak',cond:state.streak>=7,color:'var(--amber)'},
+    {id:'perfect',icon:'fa-medal',label:'Perfect Day',desc:'100% completion in a day',cond:Object.values(state.logs).some(d=>{const s=activeDailySupps();return s.length>0&&s.every(ss=>Math.min(100,(d[ss.id]||0)/getTarget(ss)*100)>=80);}),color:'var(--mint)'},
+    {id:'all_weekly',icon:'fa-calendar-check',label:'Weekly Pro',desc:'All weekly supplements done',cond:activeWeeklySupps().every(s=>getWeeklyDone(s.id)),color:'var(--sky)'},
+    {id:'protein_goal',icon:'fa-egg',label:'Protein Champion',desc:'Hit protein target for the day',cond:getPct('protein')>=80,color:'var(--amber)'},
+  ];
+  document.getElementById('achievements').innerHTML=ach.map(a=>`
+    <div class="health-tip" style="opacity:${a.cond?1:0.4}">
+      <div class="ht-icon" style="color:${a.color||'var(--mint)'}"><i class="fa-solid ${a.icon}"></i>${a.cond?'':' 🔒'}</div>
+      <div class="ht-title">${a.label}</div>
+      <div class="ht-text">${a.desc}</div>
+    </div>`).join('');
+}
+
+// ─── PROFILE ───
+function saveProfile(){
+  state.profile={
+    name: document.getElementById('pName').value,
+    age: +document.getElementById('pAge').value||25,
+    weight: +document.getElementById('pWeight').value||70,
+    height: +document.getElementById('pHeight').value||170,
+    sex: document.getElementById('pSex').value,
+    activity: document.getElementById('pActivity').value,
+    goal: document.getElementById('pGoal').value,
+    diet: document.getElementById('pDiet').value,
+    blood: document.getElementById('pBlood').value,
+    sun: document.getElementById('pSun').value,
+  };
+  save();
+  renderProfile();
+  renderTracker();
+  renderDashboard();
+  toast('success','Profile Saved','Your supplement targets have been recalculated.');
+}
+
+function renderProfile(){
+  const p=state.profile;
+  document.getElementById('pName').value=p.name||'';
+  document.getElementById('pAge').value=p.age||'';
+  document.getElementById('pWeight').value=p.weight||'';
+  document.getElementById('pHeight').value=p.height||'';
+  document.getElementById('pSex').value=p.sex||'male';
+  document.getElementById('pActivity').value=p.activity||'moderate';
+  document.getElementById('pGoal').value=p.goal||'maintain';
+  document.getElementById('pDiet').value=p.diet||'omnivore';
+  document.getElementById('pBlood').value=p.blood||'';
+  document.getElementById('pSun').value=p.sun||'moderate';
+
+  if(p.age&&p.weight&&p.height){
+    // BMI
+    const bmi=+(p.weight/(((p.height/100)**2))).toFixed(1);
+    const bmiCat=bmi<18.5?'Underweight':bmi<25?'Normal':bmi<30?'Overweight':'Obese';
+    const bmiColor=bmi<18.5?'var(--sky)':bmi<25?'var(--mint)':bmi<30?'var(--amber)':'var(--coral)';
+    // BMR (Mifflin-St Jeor)
+    const bmr=p.sex==='male'?(10*p.weight+6.25*p.height-5*p.age+5):(10*p.weight+6.25*p.height-5*p.age-161);
+    const actM={sedentary:1.2,light:1.375,moderate:1.55,active:1.725,athlete:1.9};
+    const tdee=Math.round(bmr*(actM[p.activity]||1.55));
+    const goalCals={maintain:tdee,lose:tdee-500,gain:tdee+300,recomp:tdee}[p.goal]||tdee;
+    const protein=Math.round(p.weight*(p.goal==='gain'?2.2:p.goal==='lose'?2:1.6));
+    const water=Math.round(p.weight*35);
+
+    document.getElementById('bmiCard').style.display='block';
+    document.getElementById('profileCalcs').innerHTML=`
+      <div class="setup-grid">
+        <div class="stat-card" style="background:var(--navy3)"><div class="s-val" style="color:${bmiColor}">${bmi}</div><div class="s-lbl">BMI · ${bmiCat}</div></div>
+        <div class="stat-card" style="background:var(--navy3)"><div class="s-val" style="color:var(--mint)">${tdee}</div><div class="s-lbl">TDEE (kcal/day)</div></div>
+        <div class="stat-card" style="background:var(--navy3)"><div class="s-val" style="color:var(--sky)">${goalCals}</div><div class="s-lbl">Target Calories</div></div>
+        <div class="stat-card" style="background:var(--navy3)"><div class="s-val" style="color:var(--amber)">${protein}g</div><div class="s-lbl">Protein Target</div></div>
+        <div class="stat-card" style="background:var(--navy3)"><div class="s-val" style="color:var(--sky)">${water}ml</div><div class="s-lbl">Daily Water</div></div>
+        <div class="stat-card" style="background:var(--navy3)"><div class="s-val" style="color:var(--mint)">${Math.round(bmr)}</div><div class="s-lbl">BMR (kcal)</div></div>
+      </div>
+      <div class="tip-box mt-2">
+        <strong>Your Goal: ${p.goal==='maintain'?'Maintain Weight':p.goal==='lose'?'Fat Loss':p.goal==='gain'?'Muscle Gain':'Body Recomposition'}</strong><br>
+        Aim for <strong>${goalCals} kcal/day</strong>, <strong>${protein}g protein/day</strong>, and <strong>${(water/1000).toFixed(1)}L water/day</strong>. Your supplement targets have been personalized based on your age, sex, and sun exposure.
+      </div>`;
+  }
+  renderSuppSelector();
+}
+
+// ─── SUPPLEMENT SELECTOR ───
+const PRESETS = {
+  essential: ['vitD','vitC','vitB12','calcium','magnesium','iron','zinc'],
+  fitness:   ['protein','creatine','vitD','vitC','magnesium','zinc','omega3','potassium','vitB12','fiber'],
+  vegan:     ['vitB12','vitD','iron','calcium','omega3','zinc','folate','iodine','protein','probiotics'],
+  all:       null,
+  none:      [],
+};
+
+function renderSuppSelector(){
+  const tracked = state.trackedSupps;
+  const grid = document.getElementById('suppCheckGrid');
+
+  const groups = [
+    { label:'🏋️ Performance & Body', ids:['protein','creatine','collagen'] },
+    { label:'🌿 Core Vitamins', ids:['vitD','vitC','vitB12','vitA','vitE','vitB6','biotin','folate'] },
+    { label:'⚡ Minerals', ids:['calcium','magnesium','iron','zinc','potassium','iodine','chromium'] },
+    { label:'❤️ Heart & Cell Health', ids:['omega3','coq10'] },
+    { label:'🦠 Gut & Immunity', ids:['probiotics','fiber'] },
+    { label:'📅 Weekly Supplements', ids:['vitB1','vitK2','electrolytes'] },
+  ];
+
+  let html = '';
+  groups.forEach(g => {
+    const supps = SUPPLEMENTS.filter(s => g.ids.includes(s.id));
+    if(!supps.length) return;
+    html += `<div style="grid-column:1/-1;font-size:0.75rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">${g.label}</div>`;
+    supps.forEach(s => {
+      const checked = !tracked || tracked.includes(s.id);
+      html += `<label class="supp-check-item ${checked?'checked':''}" id="lbl-${s.id}" onclick="toggleSuppCheck('${s.id}',this)">
+        <div class="supp-check-box">
+          <div class="supp-icon" style="background:${s.colorBg};width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0">
+            <i class="fa-solid ${s.icon}" style="color:${s.color}"></i>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+            <div style="font-size:0.7rem;color:var(--text2)">${s.freq==='weekly'?'Weekly':'Daily'} · ${s.unit}</div>
+          </div>
+          <div class="check-dot ${checked?'on':''}"><i class="fa-solid fa-check" style="font-size:0.6rem"></i></div>
+        </div>
+      </label>`;
+    });
+  });
+  grid.innerHTML = html;
+  updateSelectedCount();
+}
+
+function toggleSuppCheck(id, label){
+  if(!state.trackedSupps) state.trackedSupps = SUPPLEMENTS.map(s=>s.id);
+  const idx = state.trackedSupps.indexOf(id);
+  if(idx>=0){ state.trackedSupps.splice(idx,1); label.classList.remove('checked'); label.querySelector('.check-dot').classList.remove('on'); }
+  else { state.trackedSupps.push(id); label.classList.add('checked'); label.querySelector('.check-dot').classList.add('on'); }
+  updateSelectedCount();
+}
+
+function updateSelectedCount(){
+  const n = state.trackedSupps ? state.trackedSupps.length : SUPPLEMENTS.length;
+  document.getElementById('selectedCount').textContent = n;
+}
+
+function applyPreset(name){
+  if(name==='all') state.trackedSupps=null;
+  else if(name==='none') state.trackedSupps=[];
+  else state.trackedSupps=[...PRESETS[name]];
+  renderSuppSelector();
+}
+
+function saveTrackedSupps(){
+  if(state.trackedSupps && state.trackedSupps.length===0){
+    toast('warn','Nothing selected','Please select at least one supplement to track.'); return;
+  }
+  save(); renderAll();
+  toast('success','Tracking updated',`Now tracking ${state.trackedSupps?state.trackedSupps.length:SUPPLEMENTS.length} supplements.`);
+}
+function renderTips(){
+  const tips=[
+    { icon:'fa-sun', color:'var(--amber)', title:'Vitamin D & Sunlight', text:'Aim for 15–20 minutes of direct sun exposure on arms and face daily. Morning sun (before 10am) is ideal. If you work indoors, supplement with 1000–2000 IU D3 daily.' },
+    { icon:'fa-droplet', color:'var(--sky)', title:'Hydration is key', text:'Drink at least 30–35ml of water per kg of body weight daily. Electrolytes (sodium, potassium, magnesium) are lost through sweat — replenish post-workout.' },
+    { icon:'fa-bowl-food', color:'var(--mint)', title:'Whole Foods First', text:'Supplements are a safety net, not a replacement. Prioritize colorful vegetables, lean proteins, whole grains, and healthy fats. Aim for 30+ different plant foods per week.' },
+    { icon:'fa-bed', color:'var(--sky)', title:'Sleep & Recovery', text:'7–9 hours of quality sleep is critical. Magnesium glycinate (200–400mg before bed) can improve sleep quality. Keep screens off 1 hour before sleep.' },
+    { icon:'fa-dumbbell', color:'var(--coral)', title:'Resistance Training', text:'Lift weights 3–4x per week. Protein synthesis peaks within 2 hours post-workout. Consume 20–40g protein within this window. Creatine monohydrate (5g/day) enhances strength.' },
+    { icon:'fa-heart-pulse', color:'var(--coral)', title:'Cardiovascular Health', text:'150+ minutes of moderate cardio per week reduces cardiovascular risk by 35%. Omega-3s (1–3g EPA+DHA daily) significantly improve heart markers.' },
+    { icon:'fa-bacteria', color:'var(--mint)', title:'Gut Health', text:'A diverse gut microbiome supports immunity, mood, and nutrient absorption. Include fermented foods (yogurt, kefir, kimchi), prebiotic fiber (oats, garlic, onions), and consider a probiotic supplement.' },
+    { icon:'fa-brain', color:'var(--sky)', title:'Brain & Focus', text:'Omega-3 DHA is essential for brain function. B vitamins (especially B12, B6, folate) support neurotransmitter synthesis. Lion\'s Mane mushroom shows promise for neurogenesis.' },
+    { icon:'fa-shield-halved', color:'var(--amber)', title:'Immune Defense', text:'Vitamin C (500–1000mg), Zinc (15–30mg during illness), and Vitamin D form your immune triad. During cold/flu season, elderberry extract may reduce duration.' },
+    { icon:'fa-scale-balanced', color:'var(--mint)', title:'Hormonal Balance', text:'Zinc, Vitamin D, and magnesium support healthy testosterone in men. Women benefit from iron, folate, and calcium. Avoid chronically low-calorie diets as they suppress hormonal function.' },
+    { icon:'fa-fire-flame-curved', color:'var(--amber)', title:'Anti-Inflammatory Diet', text:'Chronic inflammation is linked to most diseases. Include turmeric (curcumin), ginger, dark berries, green tea, and fatty fish. Minimize ultra-processed foods, seed oils, and added sugars.' },
+    { icon:'fa-seedling', color:'var(--mint)', title:'Phytonutrients', text:'Eat the rainbow. Lycopene (tomatoes), anthocyanins (blueberries), sulforaphane (broccoli), and quercetin (onions) have powerful disease-fighting properties. Aim for 5–9 servings of fruit & veg daily.' },
+  ];
+  const general=[
+    { title:'The 80/20 Rule', text:'Nail your nutrition 80% of the time. Perfection is unsustainable. Focus on consistency over intensity — small daily habits compound into massive results over years.' },
+    { title:'Supplement Quality Matters', text:'Look for supplements with third-party testing (NSF, USP, Informed Sport). Choose methylated B vitamins, chelated minerals, and bioavailable forms like magnesium glycinate over oxide.' },
+    { title:'Timing Optimization', text:'Fat-soluble vitamins (A, D, E, K) absorb best with a fatty meal. Iron absorbs better with Vitamin C and away from calcium. Magnesium and zinc are best taken at night. B vitamins are energizing — take in the morning.' },
+  ];
+  document.getElementById('healthTipsContent').innerHTML=`
+    <div class="health-tip-row">${tips.map(t=>`
+      <div class="health-tip">
+        <div class="ht-icon" style="color:${t.color}"><i class="fa-solid ${t.icon}"></i></div>
+        <div class="ht-title">${t.title}</div>
+        <div class="ht-text">${t.text}</div>
+      </div>`).join('')}
+    </div>
+    <div class="divider"></div>
+    <div class="section-title" style="margin-bottom:1rem"><i class="fa-solid fa-lightbulb" style="color:var(--amber)"></i> Smart Supplement Principles</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
+      ${general.map(g=>`<div class="card card-sm"><div style="font-size:0.88rem;font-weight:600;margin-bottom:6px">${g.title}</div><div style="font-size:0.8rem;color:var(--text2);line-height:1.6">${g.text}</div></div>`).join('')}
+    </div>
+    <div class="warn-box mt-3"><strong><i class="fa-solid fa-triangle-exclamation"></i> Disclaimer:</strong> This app provides general health information only. Always consult a healthcare professional before starting any supplementation, especially if you have medical conditions or take medications.</div>
+  `;
+}
+
+// ─── STREAK ───
+function updateStreak(){
+  const t=today();
+  const dailyS=activeDailySupps();
+  const todayDone=dailyS.filter(s=>getPct(s.id)>=50).length >= Math.ceil(dailyS.length/2);
+  if(todayDone && state.lastActiveDate!==t){
+    const yesterday=new Date(); yesterday.setDate(yesterday.getDate()-1);
+    const yKey=yesterday.toISOString().slice(0,10);
+    if(state.lastActiveDate===yKey) state.streak++;
+    else if(state.lastActiveDate!==t) state.streak=1;
+    state.lastActiveDate=t; save();
+  }
+}
+
+// ─── TOAST ───
+function toast(type,title,msg,dur=4000){
+  const w=document.getElementById('toast-wrap');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<i class="fa-solid ${type==='success'?'fa-circle-check':'fa-triangle-exclamation'} toast-icon"></i>
+    <div class="toast-body"><div class="t-title">${title}</div><div class="t-msg">${msg}</div></div>
+    <div class="toast-close" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></div>`;
+  w.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(20px)'; el.style.transition='all .3s'; setTimeout(()=>el.remove(),300); },dur);
+}
+
+// ─── NAV ───
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const tabs={dashboard:0,tracker:1,progress:2,profile:3,tips:4};
+  document.querySelectorAll('.nav-tab')[tabs[id]]?.classList.add('active');
+  if(id==='progress') renderProgress();
+  if(id==='dashboard') renderDashboard();
+  if(id==='tracker') renderTracker();
+}
+
+function resetToday(){
+  if(!confirm('Reset all of today\'s supplement logs?')) return;
+  delete state.logs[today()]; delete state.foodLogs[today()];
+  save(); renderAll(); toast('warn','Today Reset','All today\'s logs have been cleared.');
+}
+
+// ─── SMART NOTIFICATIONS ───
+function checkSmartNotifications(){
+  const t=today();
+  if(state._notifDay!==t){ state._notifDay=t; state._notifFired={}; save(); }
+  if(!state._notifFired) state._notifFired={};
+  const now=new Date(); const h=now.getHours();
+  const dailyS=activeDailySupps();
+  const missing=dailyS.filter(s=>getPct(s.id)<20);
+  if(missing.length===0) return;
+  const slots=[
+    {key:'morning', from:8, to:10, title:'Morning Reminder ☀️', verb:"Don't forget"},
+    {key:'afternoon', from:13, to:15, title:'Afternoon Check 🌤', verb:"You're low on"},
+    {key:'evening', from:19, to:21, title:'Evening Reminder 🌙', verb:'Complete your targets'},
+  ];
+  for(const slot of slots){
+    if(h>=slot.from && h<slot.to && state.notifs[slot.key] && !state._notifFired[slot.key]){
+      fireNotification(slot.title, `${slot.verb}: ${missing.slice(0,3).map(s=>s.name).join(', ')}${missing.length>3?' and more.':'.'}`);
+      state._notifFired[slot.key]=true; save();
+    }
+  }
+}
+
+// ─── INIT ───
+load();
+renderAll();
+// Greeting hour fix
+(function(){
+  const h=new Date().getHours();
+  const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  document.getElementById('dashGreeting').textContent=g+(state.profile.name?', '+state.profile.name+'!':'!');
+})();
+setTimeout(checkSmartNotifications,3000);
+setInterval(checkSmartNotifications,60000);
+updateNotifPermissionUI();
+
+// ─── PWA: SERVICE WORKER + INSTALL PROMPT ───
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{ /* file:// or unsupported host — ignore */ });
+  });
+}
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  const btn=document.getElementById('installAppBtn');
+  if(btn) btn.style.display='inline-flex';
+});
+function installApp(){
+  if(!deferredInstallPrompt){
+    toast('warn','Already Installed or Unsupported','Use your browser menu → "Add to Home screen" / "Install app" instead.');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then((choice)=>{
+    if(choice.outcome==='accepted') toast('success','Installed!','NutriTrack has been added to your home screen.');
+    deferredInstallPrompt=null;
+    const btn=document.getElementById('installAppBtn');
+    if(btn) btn.style.display='none';
+  });
+}
+window.addEventListener('appinstalled',()=>{
+  const btn=document.getElementById('installAppBtn');
+  if(btn) btn.style.display='none';
+});
+</script>
+</body>
+</html>
