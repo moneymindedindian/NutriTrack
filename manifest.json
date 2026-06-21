@@ -2,7 +2,7 @@
   "name": "NutriTrack — Supplement Tracker",
   "short_name": "NutriTrack",
   "description": "Daily supplement & nutrition tracker with smart reminders.",
-  "start_url": "./supplement-tracker_v3.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

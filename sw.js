@@ -1,7 +1,7 @@
 // NutriTrack service worker — enables "Install app" on Android and basic offline support.
 const CACHE_NAME = 'nutritrack-v1';
 const CORE_ASSETS = [
-  './supplement-tracker_v3.html',
+  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
